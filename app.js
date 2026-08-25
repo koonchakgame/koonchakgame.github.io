@@ -253,7 +253,6 @@ const elements = {
   memberId: document.querySelector("#memberId"),
   memberName: document.querySelector("#memberName"),
   memberJob: document.querySelector("#memberJob"),
-  memberRole: document.querySelector("#memberRole"),
   memberNote: document.querySelector("#memberNote"),
   memberSearch: document.querySelector("#memberSearch"),
   memberGroups: document.querySelector("#memberGroups"),
@@ -592,7 +591,6 @@ elements.memberForm.addEventListener("submit", (event) => {
     id,
     name: elements.memberName.value.trim(),
     job: elements.memberJob.value,
-    role: elements.memberRole.value,
     note: elements.memberNote.value.trim(),
   };
 
@@ -615,7 +613,6 @@ elements.memberGroups.addEventListener("click", (event) => {
     elements.memberId.value = member.id;
     elements.memberName.value = member.name;
     elements.memberJob.value = member.job;
-    elements.memberRole.value = member.role;
     elements.memberNote.value = member.note;
   }
 
