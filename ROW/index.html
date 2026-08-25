@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ROW Guild War Manager</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">RW</div>
+          <div>
+            <h1>Guild War Manager</h1>
+            <p>RO The New World</p>
+          </div>
+        </div>
+
+        <nav class="nav nav-pills flex-column gap-2" aria-label="Main menu">
+          <button class="nav-link nav-tab active" data-tab="dashboard" data-i18n="nav.dashboard" type="button"></button>
+          <button class="nav-link nav-tab" data-tab="members" data-i18n="nav.members" type="button"></button>
+          <button class="nav-link nav-tab" data-tab="parties" data-i18n="nav.parties" type="button"></button>
+          <button class="nav-link nav-tab" data-tab="leave" data-i18n="nav.leave" type="button"></button>
+          <button class="nav-link nav-tab" data-tab="attendance" data-i18n="nav.attendance" type="button"></button>
+          <button class="nav-link nav-tab" data-tab="logs" data-i18n="nav.logs" type="button"></button>
+        </nav>
+
+        <div class="language-card">
+          <span data-i18n="language.label"></span>
+          <div class="btn-group w-100" role="group" aria-label="Language">
+            <button class="btn btn-sm lang-button active" data-lang="th" type="button">ไทย</button>
+            <button class="btn btn-sm lang-button" data-lang="en" type="button">EN</button>
+          </div>
+        </div>
+
+        <div class="storage-card">
+          <span data-i18n="storage.autoSave"></span>
+          <strong id="saveStatus" data-i18n="storage.ready"></strong>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <section class="topbar">
+          <div>
+            <p class="eyebrow" data-i18n="app.eyebrow"></p>
+            <h2 id="pageTitle"></h2>
+          </div>
+          <div class="topbar-actions">
+            <button class="btn btn-outline-secondary" id="exportBtn" type="button" data-i18n="actions.export"></button>
+            <label class="btn btn-outline-secondary file-button" for="importFile" data-i18n="actions.import"></label>
+            <input id="importFile" type="file" accept="application/json" />
+          </div>
+        </section>
+
+        <section class="tab-panel active" id="dashboard">
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-sm-6 col-xl-3">
+              <article class="metric">
+                <span data-i18n="stats.totalMembers"></span>
+                <strong id="totalMembers">0</strong>
+              </article>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <article class="metric">
+                <span data-i18n="stats.readyMembers"></span>
+                <strong id="readyMembers">0</strong>
+              </article>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <article class="metric">
+                <span data-i18n="stats.leaveMembers"></span>
+                <strong id="leaveMembers">0</strong>
+              </article>
+            </div>
+            <div class="col-12 col-sm-6 col-xl-3">
+              <article class="metric">
+                <span data-i18n="stats.checkedMembers"></span>
+                <strong id="checkedMembers">0</strong>
+              </article>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12 col-xl-6">
+              <section class="panel">
+                <div class="panel-header">
+                  <h3 data-i18n="dashboard.jobCount"></h3>
+                </div>
+                <div class="job-summary" id="jobSummary"></div>
+              </section>
+            </div>
+            <div class="col-12 col-xl-6">
+              <section class="panel">
+                <div class="panel-header">
+                  <h3 data-i18n="dashboard.recentActivity"></h3>
+                </div>
+                <div class="compact-log" id="recentLogs"></div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="members">
+          <div class="row g-3 align-items-start">
+            <div class="col-12 col-xl-4">
+              <form class="panel form-panel" id="memberForm">
+                <div class="panel-header">
+                  <h3 data-i18n="members.formTitle"></h3>
+                </div>
+                <input id="memberId" type="hidden" />
+                <label class="form-label">
+                  <span data-i18n="members.name"></span>
+                  <input class="form-control" id="memberName" type="text" required data-i18n-placeholder="members.namePlaceholder" />
+                </label>
+                <label class="form-label">
+                  <span data-i18n="members.job"></span>
+                  <select class="form-select" id="memberJob" required></select>
+                </label>
+                <label class="form-label">
+                  <span data-i18n="members.role"></span>
+                  <select class="form-select" id="memberRole">
+                    <option value="DPS">DPS</option>
+                    <option value="Tank">Tank</option>
+                    <option value="Support">Support</option>
+                    <option value="Control">Control</option>
+                    <option value="Flex">Flex</option>
+                  </select>
+                </label>
+                <label class="form-label">
+                  <span data-i18n="members.note"></span>
+                  <input class="form-control" id="memberNote" type="text" data-i18n-placeholder="members.notePlaceholder" />
+                </label>
+                <div class="d-grid d-sm-flex gap-2">
+                  <button class="btn btn-primary" type="submit" data-i18n="members.save"></button>
+                  <button class="btn btn-outline-secondary" id="resetMemberForm" type="button" data-i18n="members.reset"></button>
+                </div>
+              </form>
+            </div>
+            <div class="col-12 col-xl-8">
+              <section class="panel">
+                <div class="panel-header with-search">
+                  <h3 data-i18n="members.listTitle"></h3>
+                  <input class="form-control search-input" id="memberSearch" type="search" data-i18n-placeholder="members.search" />
+                </div>
+                <div class="member-groups" id="memberGroups"></div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="parties">
+          <div class="party-toolbar">
+            <button class="btn btn-primary" id="addMainParty" type="button" data-i18n="parties.addMain"></button>
+            <button class="btn btn-warning" id="addReserveParty" type="button" data-i18n="parties.addReserve"></button>
+          </div>
+          <div class="row g-3">
+            <div class="col-12 col-xxl-6">
+              <section class="panel">
+                <div class="panel-header">
+                  <h3 data-i18n="parties.main"></h3>
+                </div>
+                <div class="party-board" id="mainParties"></div>
+              </section>
+            </div>
+            <div class="col-12 col-xxl-6">
+              <section class="panel">
+                <div class="panel-header">
+                  <h3 data-i18n="parties.reserve"></h3>
+                </div>
+                <div class="party-board" id="reserveParties"></div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="leave">
+          <div class="row g-3 align-items-start">
+            <div class="col-12 col-xl-4">
+              <form class="panel form-panel" id="leaveForm">
+                <div class="panel-header">
+                  <h3 data-i18n="leave.formTitle"></h3>
+                </div>
+                <label class="form-label">
+                  <span data-i18n="leave.member"></span>
+                  <select class="form-select" id="leaveMember" required></select>
+                </label>
+                <label class="form-label">
+                  <span data-i18n="leave.date"></span>
+                  <input class="form-control" id="leaveDate" type="date" required />
+                </label>
+                <label class="form-label">
+                  <span data-i18n="leave.reason"></span>
+                  <input class="form-control" id="leaveReason" type="text" required data-i18n-placeholder="leave.reasonPlaceholder" />
+                </label>
+                <button class="btn btn-primary w-100" type="submit" data-i18n="leave.save"></button>
+              </form>
+            </div>
+            <div class="col-12 col-xl-8">
+              <section class="panel">
+                <div class="panel-header">
+                  <h3 data-i18n="leave.listTitle"></h3>
+                </div>
+                <div class="table-responsive table-frame">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th data-i18n="leave.date"></th>
+                        <th data-i18n="leave.name"></th>
+                        <th data-i18n="leave.job"></th>
+                        <th data-i18n="leave.reason"></th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="leaveRows"></tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+
+        <section class="tab-panel" id="attendance">
+          <section class="panel">
+            <div class="panel-header attendance-header">
+              <div>
+                <h3 data-i18n="attendance.title"></h3>
+                <p data-i18n="attendance.subtitle"></p>
+              </div>
+              <input class="form-control date-input" id="attendanceDate" type="date" />
+            </div>
+            <div class="attendance-grid" id="attendanceGrid"></div>
+          </section>
+        </section>
+
+        <section class="tab-panel" id="logs">
+          <section class="panel">
+            <div class="panel-header">
+              <h3 data-i18n="logs.title"></h3>
+              <button class="btn btn-outline-danger btn-sm" id="clearLogs" type="button" data-i18n="logs.clear"></button>
+            </div>
+            <div class="log-list" id="logList"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <template id="partyTemplate">
+      <article class="party-card">
+        <div class="party-card-header">
+          <input class="form-control party-name-input" type="text" />
+          <button class="btn btn-outline-danger delete-party" type="button" aria-label="Delete party">×</button>
+        </div>
+        <div class="party-slots"></div>
+      </article>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
