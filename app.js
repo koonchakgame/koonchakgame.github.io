@@ -206,10 +206,6 @@ let currentLang = I18N[urlLang] ? urlLang : localStorage.getItem(LANG_KEY) || "t
 if (!I18N[currentLang]) currentLang = "th";
 
 const today = () => new Date().toISOString().slice(0, 10);
-const uid = () => {
-  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
-  return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-};
 
 const t = (key, params = {}) => {
   const template = I18N[currentLang]?.[key] ?? I18N.en[key] ?? key;
@@ -222,15 +218,15 @@ const t = (key, params = {}) => {
 function createStarterState() {
   return {
     members: [
-      { id: uid(), name: "GuildLeader", job: "Swordsman", role: "Tank", note: t("sample.note") },
-      { id: uid(), name: "HealMain", job: "Acolyte", role: "Support", note: t("sample.note") },
-      { id: uid(), name: "SharpShot", job: "Archer", role: "DPS", note: t("sample.note") },
-      { id: uid(), name: "Arcane", job: "Mage", role: "DPS", note: t("sample.note") },
-      { id: uid(), name: "Shadow", job: "Thief", role: "Control", note: t("sample.note") },
+      { name: "GuildLeader", job: "Swordsman", role: "Tank", note: t("sample.note") },
+      { name: "HealMain", job: "Acolyte", role: "Support", note: t("sample.note") },
+      { name: "SharpShot", job: "Archer", role: "DPS", note: t("sample.note") },
+      { name: "Arcane", job: "Mage", role: "DPS", note: t("sample.note") },
+      { name: "Shadow", job: "Thief", role: "Control", note: t("sample.note") },
     ],
     parties: {
-      main: [{ id: uid(), name: "Main Party 1", slots: [] }],
-      reserve: [{ id: uid(), name: "Reserve Party 1", slots: [] }],
+      main: [{ name: "Main Party 1", slots: [] }],
+      reserve: [{ name: "Reserve Party 1", slots: [] }],
     },
     leaves: [],
     attendance: {},
@@ -250,7 +246,7 @@ const elements = {
   jobSummary: document.querySelector("#jobSummary"),
   recentLogs: document.querySelector("#recentLogs"),
   memberForm: document.querySelector("#memberForm"),
-  memberId: document.querySelector("#memberId"),
+  memberOriginalName: document.querySelector("#memberId"), // ใช้ซ้ำเป็นช่องเก็บบันทึกชื่อเดิมตอนแก้ไข
   memberName: document.querySelector("#memberName"),
   memberJob: document.querySelector("#memberJob"),
   memberNote: document.querySelector("#memberNote"),
@@ -309,7 +305,6 @@ function saveState(action, detail) {
 
 function createLog(action, detail) {
   return {
-    id: uid(),
     at: new Date().toISOString(),
     action,
     detail,
@@ -324,8 +319,8 @@ function byName(first, second) {
   return first.name.localeCompare(second.name, locale());
 }
 
-function memberById(id) {
-  return state.members.find((member) => member.id === id);
+function memberByName(name) {
+  return state.members.find((member) => member.name === name);
 }
 
 function membersByJob() {
@@ -363,7 +358,7 @@ function render() {
 }
 
 function renderDashboard() {
-  const leaveToday = new Set(state.leaves.filter((item) => item.date === today()).map((item) => item.memberId));
+  const leaveToday = new Set(state.leaves.filter((item) => item.date === today()).map((item) => item.memberName));
   const attendanceToday = state.attendance[today()] ?? {};
   elements.totalMembers.textContent = state.members.length;
   elements.leaveMembers.textContent = leaveToday.size;
@@ -392,7 +387,7 @@ function renderMemberOptions() {
 
   const memberOptions = [...state.members]
     .sort(byName)
-    .map((member) => `<option value="${member.id}">${escapeHtml(member.name)} (${member.job})</option>`)
+    .map((member) => `<option value="${escapeHtml(member.name)}">${escapeHtml(member.name)} (${member.job})</option>`)
     .join("");
   elements.leaveMember.innerHTML = memberOptions;
 }
@@ -422,8 +417,8 @@ function memberCardHtml(member) {
         <div class="member-meta">${member.job} · ${member.role}${member.note ? ` · ${escapeHtml(member.note)}` : ""}</div>
       </div>
       <div class="member-actions">
-        <button class="btn btn-outline-secondary edit-member" data-id="${member.id}" type="button" aria-label="${t("members.formTitle")}">✎</button>
-        <button class="btn btn-outline-danger delete-member" data-id="${member.id}" type="button" aria-label="${t("log.deleteMember")}">×</button>
+        <button class="btn btn-outline-secondary edit-member" data-name="${escapeHtml(member.name)}" type="button" aria-label="${t("members.formTitle")}">✎</button>
+        <button class="btn btn-outline-danger delete-member" data-name="${escapeHtml(member.name)}" type="button" aria-label="${t("log.deleteMember")}">×</button>
       </div>
     </article>
   `;
@@ -447,7 +442,7 @@ function renderParties(type, container) {
 
     deleteButton.addEventListener("click", () => {
       if (!confirm(t("confirm.deleteParty"))) return;
-      state.parties[type] = state.parties[type].filter((item) => item.id !== party.id);
+      state.parties[type].splice(partyIndex, 1);
       saveState("log.deleteParty", party.name);
     });
 
@@ -455,7 +450,6 @@ function renderParties(type, container) {
       slots.appendChild(createPartySlot(party, slotIndex));
     }
 
-    card.dataset.partyId = party.id;
     container.appendChild(template);
   });
 
@@ -465,8 +459,8 @@ function renderParties(type, container) {
 }
 
 function createPartySlot(party, slotIndex) {
-  const memberId = party.slots[slotIndex] ?? "";
-  const member = memberById(memberId);
+  const memberName = party.slots[slotIndex] ?? "";
+  const member = memberByName(memberName);
   const slot = document.createElement("div");
   slot.className = "party-slot";
   slot.innerHTML = `
@@ -477,7 +471,7 @@ function createPartySlot(party, slotIndex) {
     <select class="form-select form-select-sm" aria-label="${t("party.slot")} ${slotIndex + 1}">
       <option value="">${t("party.empty")}</option>
       ${[...state.members].sort(byName).map((item) => `
-        <option value="${item.id}" ${item.id === memberId ? "selected" : ""}>${escapeHtml(item.name)}</option>
+        <option value="${escapeHtml(item.name)}" ${item.name === memberName ? "selected" : ""}>${escapeHtml(item.name)}</option>
       `).join("")}
     </select>
     <div class="slot-job">${member ? member.job : t("party.chooseMember")}</div>
@@ -486,7 +480,7 @@ function createPartySlot(party, slotIndex) {
   slot.querySelector("select").addEventListener("change", (event) => {
     party.slots[slotIndex] = event.target.value;
     party.slots = party.slots.map((value) => value || "").slice(0, 5);
-    const selected = memberById(event.target.value);
+    const selected = memberByName(event.target.value);
     saveState("log.assignParty", t("detail.partySlot", {
       member: selected?.name ?? t("party.empty"),
       party: party.name,
@@ -497,16 +491,18 @@ function createPartySlot(party, slotIndex) {
 }
 
 function renderLeaves() {
-  const rows = [...state.leaves].sort((first, second) => second.date.localeCompare(first.date));
+  const rows = [...state.leaves].map((item, index) => ({ ...item, originalIndex: index }))
+    .sort((first, second) => second.date.localeCompare(first.date));
+  
   elements.leaveRows.innerHTML = rows.map((item) => {
-    const member = memberById(item.memberId);
+    const member = memberByName(item.memberName);
     return `
       <tr>
         <td>${item.date}</td>
-        <td>${escapeHtml(member?.name ?? t("state.deletedMember"))}</td>
+        <td>${escapeHtml(item.memberName ?? t("state.deletedMember"))}</td>
         <td>${member?.job ?? "-"}</td>
         <td>${escapeHtml(item.reason)}</td>
-        <td><button class="btn btn-outline-danger btn-sm delete-leave" data-id="${item.id}" type="button" aria-label="${t("log.deleteLeave")}">×</button></td>
+        <td><button class="btn btn-outline-danger btn-sm delete-leave" data-index="${item.originalIndex}" type="button" aria-label="${t("log.deleteLeave")}">×</button></td>
       </tr>
     `;
   }).join("") || `<tr><td colspan="5" class="empty-state">${t("state.noLeaves")}</td></tr>`;
@@ -516,14 +512,14 @@ function renderAttendance() {
   const date = elements.attendanceDate.value || today();
   const dayAttendance = state.attendance[date] ?? {};
   elements.attendanceGrid.innerHTML = [...state.members].sort(byName).map((member) => {
-    const status = dayAttendance[member.id] ?? "";
+    const status = dayAttendance[member.name] ?? "";
     return `
       <article class="attendance-card">
         <div>
           <strong>${escapeHtml(member.name)}</strong>
           <div class="member-meta">${member.job} · ${member.role}</div>
         </div>
-        <div class="attendance-actions" data-member-id="${member.id}">
+        <div class="attendance-actions" data-member-name="${escapeHtml(member.name)}">
           <button class="status-button present ${status === "present" ? "active" : ""}" data-status="present" type="button">${t("attendance.present")}</button>
           <button class="status-button late ${status === "late" ? "active" : ""}" data-status="late" type="button">${t("attendance.late")}</button>
           <button class="status-button absent ${status === "absent" ? "active" : ""}" data-status="absent" type="button">${t("attendance.absent")}</button>
@@ -553,7 +549,7 @@ function emptyState(text) {
 
 function resetMemberForm() {
   elements.memberForm.reset();
-  elements.memberId.value = "";
+  elements.memberOriginalName.value = "";
   elements.memberJob.value = JOBS[0];
 }
 
@@ -585,16 +581,29 @@ document.querySelectorAll(".lang-button").forEach((button) => {
 
 elements.memberForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  const id = elements.memberId.value || uid();
-  const existing = memberById(id);
+  const originalName = elements.memberOriginalName.value;
+  const newName = elements.memberName.value.trim();
+  const existing = memberByName(originalName);
+
   const payload = {
-    id,
-    name: elements.memberName.value.trim(),
+    name: newName,
     job: elements.memberJob.value,
     note: elements.memberNote.value.trim(),
   };
 
   if (existing) {
+    // อัปเดตชื่อในรายการปาร์ตี้และการแจ้งลาหากมีการเปลี่ยนชื่อ
+    if (originalName !== newName) {
+      state.parties.main.forEach(p => p.slots = p.slots.map(s => s === originalName ? newName : s));
+      state.parties.reserve.forEach(p => p.slots = p.slots.map(s => s === originalName ? newName : s));
+      state.leaves.forEach(l => { if (l.memberName === originalName) l.memberName = newName; });
+      Object.keys(state.attendance).forEach(d => {
+        if (state.attendance[d][originalName]) {
+          state.attendance[d][newName] = state.attendance[d][originalName];
+          delete state.attendance[d][originalName];
+        }
+      });
+    }
     Object.assign(existing, payload);
     saveState("log.editMember", payload.name);
   } else {
@@ -609,20 +618,20 @@ elements.memberGroups.addEventListener("click", (event) => {
   const deleteButton = event.target.closest(".delete-member");
 
   if (editButton) {
-    const member = memberById(editButton.dataset.id);
-    elements.memberId.value = member.id;
+    const member = memberByName(editButton.dataset.name);
+    elements.memberOriginalName.value = member.name;
     elements.memberName.value = member.name;
     elements.memberJob.value = member.job;
     elements.memberNote.value = member.note;
   }
 
   if (deleteButton) {
-    const member = memberById(deleteButton.dataset.id);
+    const name = deleteButton.dataset.name;
     if (!confirm(t("confirm.deleteMember"))) return;
-    state.members = state.members.filter((item) => item.id !== member.id);
-    state.parties.main.forEach((party) => party.slots = party.slots.map((id) => id === member.id ? "" : id));
-    state.parties.reserve.forEach((party) => party.slots = party.slots.map((id) => id === member.id ? "" : id));
-    saveState("log.deleteMember", member.name);
+    state.members = state.members.filter((item) => item.name !== name);
+    state.parties.main.forEach((party) => party.slots = party.slots.map((s) => s === name ? "" : s));
+    state.parties.reserve.forEach((party) => party.slots = party.slots.map((s) => s === name ? "" : s));
+    saveState("log.deleteMember", name);
   }
 });
 
@@ -631,29 +640,28 @@ elements.resetMemberForm.addEventListener("click", resetMemberForm);
 
 elements.addMainParty.addEventListener("click", () => {
   const name = `${t("party.mainDefault")} ${state.parties.main.length + 1}`;
-  state.parties.main.push({ id: uid(), name, slots: [] });
+  state.parties.main.push({ name, slots: [] });
   saveState("log.addMainParty", name);
 });
 
 elements.addReserveParty.addEventListener("click", () => {
   const name = `${t("party.reserveDefault")} ${state.parties.reserve.length + 1}`;
-  state.parties.reserve.push({ id: uid(), name, slots: [] });
+  state.parties.reserve.push({ name, slots: [] });
   saveState("log.addReserveParty", name);
 });
 
 elements.leaveDate.value = today();
 elements.leaveForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  const member = memberById(elements.leaveMember.value);
+  const memberName = elements.leaveMember.value;
   state.leaves.push({
-    id: uid(),
-    memberId: elements.leaveMember.value,
+    memberName: memberName,
     date: elements.leaveDate.value,
     reason: elements.leaveReason.value.trim(),
   });
   elements.leaveReason.value = "";
   saveState("log.leave", t("detail.leave", {
-    member: member?.name ?? t("detail.notFoundMember"),
+    member: memberName || t("detail.notFoundMember"),
     date: elements.leaveDate.value,
   }));
 });
@@ -661,8 +669,9 @@ elements.leaveForm.addEventListener("submit", (event) => {
 elements.leaveRows.addEventListener("click", (event) => {
   const button = event.target.closest(".delete-leave");
   if (!button) return;
-  const leave = state.leaves.find((item) => item.id === button.dataset.id);
-  state.leaves = state.leaves.filter((item) => item.id !== button.dataset.id);
+  const index = Number.parseInt(button.dataset.index, 10);
+  const leave = state.leaves[index];
+  state.leaves.splice(index, 1);
   saveState("log.deleteLeave", leave?.date ?? "-");
 });
 
@@ -671,13 +680,12 @@ elements.attendanceDate.addEventListener("change", renderAttendance);
 elements.attendanceGrid.addEventListener("click", (event) => {
   const button = event.target.closest(".status-button");
   if (!button) return;
-  const memberId = button.parentElement.dataset.memberId;
-  const member = memberById(memberId);
+  const memberName = button.parentElement.dataset.memberName;
   const date = elements.attendanceDate.value;
   state.attendance[date] ??= {};
-  state.attendance[date][memberId] = button.dataset.status;
+  state.attendance[date][memberName] = button.dataset.status;
   saveState("log.attendance", t("detail.attendance", {
-    member: member?.name ?? t("detail.notFoundMember"),
+    member: memberName || t("detail.notFoundMember"),
     status: button.textContent,
     date,
   }));
