@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { StockAnalysis } from "@/types/stock";
 import { date, percent, price, number, tone, priceRange } from "@/lib/format";
 import { Status } from "./Panels";
+import LiveStockPrice from "./LiveStockPrice";
 export default function StockCard({ stock: s }: { stock: StockAnalysis }) {
   const nearest = (values: (number | null)[]) =>
     s.price == null
@@ -27,7 +28,7 @@ export default function StockCard({ stock: s }: { stock: StockAnalysis }) {
       href={`/stocks/${encodeURIComponent(s.ticker)}`}
       className="stock-card"
     >
-      <div className="flex items-start justify-between">
+      <div className="stock-card-heading">
         <div className="flex items-center gap-3">
           <span className="ticker-icon">{s.ticker.slice(0, 2)}</span>
           <div>
@@ -37,7 +38,7 @@ export default function StockCard({ stock: s }: { stock: StockAnalysis }) {
             </span>
           </div>
         </div>
-        <span className="muted">↗</span>
+        <LiveStockPrice ticker={s.ticker} />
       </div>
       <div className="card-price">
         <strong>{price(s.price)}</strong>
@@ -45,6 +46,7 @@ export default function StockCard({ stock: s }: { stock: StockAnalysis }) {
           {percent(s.changePercent)}
         </span>
       </div>
+      <p className="muted text-xs">ราคา ณ เวลาวิเคราะห์</p>
       <Status bias={s.tradingBias} risk={s.riskLevel} />
       <dl className="card-levels">
         <div>

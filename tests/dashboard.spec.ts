@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
 test.beforeEach(async ({ page }) => {
+  await page.route("**/api/stock-quotes", (route) => route.fulfill({ json: {
+    quotes: ["SNDK", "NVDA", "NBIS", "PLTR"].map((symbol) => ({
+      key: symbol, label: symbol, symbol, unit: "$", description: "Yahoo Finance",
+      value: 150, changePercent: 2, asOf: "2026-10-02T18:00:00Z", stale: false,
+    })),
+  } }));
   await page.route("**/api/live", (route) =>
     route.fulfill({
       json: {
@@ -142,6 +148,50 @@ test("today calendar uses Bangkok dates, supports week and filters, and excludes
   );
   await page.getByLabel("ผลกระทบ").selectOption("High");
   await expect(page.locator(".calendar-table tbody tr")).toHaveCount(0);
+});
+test("automatic refresh updates bonds, calendar and news in one snapshot", async ({ page }) => {
+  await page.clock.install();
+  await page.goto("/");
+  const bond = page.locator(".market-tile").filter({ hasText: "US 10Y" });
+  await expect(bond.locator("dd")).toHaveText("100.00");
+  let release!: () => void;
+  const ready = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/api/live", async (route) => {
+    await ready;
+    await route.fulfill({ json: {
+      today: "2026-10-03", timezone: "Asia/Bangkok",
+      refreshedAt: "2026-10-02T18:01:00Z",
+      market: { data: [{ key: "US 10Y", label: "US 10Y", symbol: "^TNX", unit: "%", description: "Test quote", value: 4.5, changePercent: 1, asOf: "2026-10-02T18:01:00Z", stale: false }], stale: false, fetchedAt: "2026-10-02T18:01:00Z" },
+      calendar: { data: [{ title: "Updated release", currency: "USD", impact: "High", date: "2026-10-02T18:30:00Z", actual: "5%", forecast: "4%", previous: "3%" }], stale: false, fetchedAt: "2026-10-02T18:01:00Z" },
+      news: { data: [{ title: "Updated headline", url: "https://finance.yahoo.com/news/updated", publishedAt: "2026-10-02T18:30:00Z" }], stale: false, fetchedAt: "2026-10-02T18:01:00Z" },
+    } });
+  });
+  await page.clock.runFor(60_000);
+  await expect(bond.locator("dd")).toHaveText("100.00");
+  await expect(page.getByText("Today US release", { exact: true })).toBeVisible();
+  release();
+  await expect(bond.locator("dd")).toHaveText("4.50%");
+  await expect(page.getByText("Updated release", { exact: true })).toBeVisible();
+  await expect(page.getByText("Updated headline", { exact: true })).toBeVisible();
+});
+test("latest stock prices appear beside names and in historical articles, refresh and retain failed quotes", async ({ page }) => {
+  await page.clock.install();
+  await page.goto("/");
+  const card = page.locator(".stock-card").filter({ has: page.getByRole("heading", { name: "SNDK", exact: true }) });
+  await expect(card.locator(".live-stock-price strong")).toHaveText("$150.00");
+  await expect(card.locator(".card-price strong")).toHaveText("$112.48");
+  await page.route("**/api/stock-quotes", (route) => route.fulfill({ json: { quotes: [{ key: "SNDK", label: "SNDK", symbol: "SNDK", unit: "$", description: "Yahoo", value: 155, changePercent: 3, asOf: "2026-10-02T18:01:00Z", stale: false }] } }));
+  await page.clock.runFor(60_000);
+  await expect(card.locator(".live-stock-price strong")).toHaveText("$155.00");
+  await card.click();
+  await expect(page.locator(".stock-title-row .live-stock-price strong")).toHaveText("$155.00");
+  await page.getByRole("navigation", { name: "Analysis snapshots" }).getByRole("link", { name: /30 Sept 2026/ }).click();
+  await expect(page.locator(".detail-price")).toContainText("$109.11");
+  await expect(page.locator(".live-stock-price strong")).toHaveText("$155.00");
+  await page.route("**/api/stock-quotes", (route) => route.fulfill({ status: 503, json: { error: "Unavailable" } }));
+  await page.clock.runFor(60_000);
+  await expect(page.locator(".live-stock-price")).toContainText("ข้อมูลเดิม");
+  await expect(page.locator(".live-stock-price strong")).toHaveText("$155.00");
 });
 test("missing symbols and missing snapshots return 404", async ({ page }) => {
   expect((await page.goto("/stocks/UNKNOWN"))?.status()).toBe(404);

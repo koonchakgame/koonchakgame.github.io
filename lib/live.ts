@@ -109,8 +109,7 @@ export function parseYahooQuote(
     stale: false,
   };
 }
-const quoteLoaders = marketSymbols.map((definition) =>
-  cachedLoader(async () => {
+export async function fetchYahooQuote(definition: (typeof marketSymbols)[number]) {
     let failure: unknown;
     for (const host of [
       "query1.finance.yahoo.com",
@@ -126,7 +125,9 @@ const quoteLoaders = marketSymbols.map((definition) =>
       }
     }
     throw failure;
-  }, 60_000),
+}
+const quoteLoaders = marketSymbols.map((definition) =>
+  cachedLoader(() => fetchYahooQuote(definition), 0),
 );
 export function parseCalendar(payload: unknown): EconomicEvent[] {
   if (!Array.isArray(payload)) throw new Error("Invalid calendar feed");
@@ -194,7 +195,7 @@ const calendarLoader = cachedLoader(
         )
       ).json(),
     ),
-  15 * 60_000,
+  0,
 );
 const newsLoader = cachedLoader(
   async () =>
@@ -203,7 +204,7 @@ const newsLoader = cachedLoader(
         await fetchSource("https://finance.yahoo.com/rss/topstories")
       ).text(),
     ),
-  5 * 60_000,
+  0,
 );
 async function optionalFeed<T>(
   load: () => Promise<Feed<T>>,
@@ -250,7 +251,9 @@ async function getMarket(): Promise<Feed<MarketQuote[]>> {
       : {}),
   };
 }
-export async function getLiveDashboardData(): Promise<LiveDashboardData> {
+// Cache the completed snapshot so every source refreshes in the same cycle.
+// Individual loaders only retain last-good data for source failures.
+const dashboardLoader = cachedLoader<LiveDashboardData>(async () => {
   const [market, calendar, news] = await Promise.all([
     getMarket(),
     optionalFeed(calendarLoader, []),
@@ -264,4 +267,8 @@ export async function getLiveDashboardData(): Promise<LiveDashboardData> {
     timezone: "Asia/Bangkok",
     refreshedAt: new Date().toISOString(),
   };
+}, 60_000);
+
+export async function getLiveDashboardData(): Promise<LiveDashboardData> {
+  return (await dashboardLoader()).data;
 }

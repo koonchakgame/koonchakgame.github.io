@@ -8,9 +8,44 @@ import {
   marketSymbols,
   parseCalendar,
   parseNews,
+  getLiveDashboardData,
 } from "../lib/live";
 import { cachedLoader } from "../lib/cache";
+import { getStockQuotes } from "../lib/stock-quotes";
 import { dayKey, price } from "../lib/format";
+test("dashboard refreshes every source together and shares concurrent snapshots", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalNow = Date.now;
+  let now = originalNow();
+  let calls = 0;
+  globalThis.fetch = async (input) => {
+    calls++;
+    const url = String(input);
+    if (url.includes("ff_calendar")) return Response.json([]);
+    if (url.includes("rss")) return new Response("<rss><channel></channel></rss>");
+    const symbol = decodeURIComponent(new URL(url).pathname.split("/").at(-1)!);
+    return Response.json({ chart: { result: [{ meta: {
+      symbol, regularMarketPrice: calls, regularMarketTime: 1790966558,
+    } }] } });
+  };
+  Date.now = () => now;
+  try {
+    const [first, shared] = await Promise.all([getLiveDashboardData(), getLiveDashboardData()]);
+    assert.equal(first, shared);
+    assert.equal(calls, 10);
+    now += 59_999;
+    assert.equal(await getLiveDashboardData(), first);
+    assert.equal(calls, 10);
+    now += 1;
+    const next = await getLiveDashboardData();
+    assert.equal(calls, 20);
+    assert.notEqual(next, first);
+    assert.notEqual(next.market.data[0].value, first.market.data[0].value);
+  } finally {
+    globalThis.fetch = originalFetch;
+    Date.now = originalNow;
+  }
+});
 function relationalBytes() {
   const book = XLSX.utils.book_new();
   for (const [name, rows] of Object.entries({
@@ -170,8 +205,14 @@ test("Drive source with one workbook returns only NBIS and never falls back to d
     ],
     null,
   ]);
-  globalThis.fetch = async (input) =>
-    String(input).includes("/drive/folders/")
+  const requestedSymbols: string[] = [];
+  globalThis.fetch = async (input) => {
+    if (String(input).includes("finance/chart/")) {
+      const symbol = decodeURIComponent(new URL(String(input)).pathname.split("/").at(-1)!);
+      requestedSymbols.push(symbol);
+      return Response.json({ chart: { result: [{ meta: { symbol, regularMarketPrice: 250, regularMarketTime: 1790966558 } }] } });
+    }
+    return String(input).includes("/drive/folders/")
       ? new Response(`window['_DRIVE_ivd'] = '${payload}'`)
       : new Response(new Uint8Array(relationalBytes()), {
           headers: {
@@ -179,6 +220,7 @@ test("Drive source with one workbook returns only NBIS and never falls back to d
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
           },
         });
+  };
   try {
     const result = await getDriveDataset();
     assert.deepEqual(
@@ -186,6 +228,10 @@ test("Drive source with one workbook returns only NBIS and never falls back to d
       ["NBIS"],
     );
     assert.deepEqual(result.data.warnings, []);
+    const quotes = await getStockQuotes();
+    assert.deepEqual(requestedSymbols, ["NBIS"]);
+    assert.equal(quotes[0].value, 250);
+    assert.equal(quotes[0].symbol, "NBIS");
   } finally {
     globalThis.fetch = original;
   }

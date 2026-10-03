@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LiveStockPrice from "@/components/LiveStockPrice";
 import { notFound } from "next/navigation";
 import { getStockHistory } from "@/lib/data-service";
 import { date, price, percent, number, tone, priceRange } from "@/lib/format";
@@ -52,10 +53,10 @@ export default async function StockDetail({
       <div className="page-heading">
         <div>
           <p className="eyebrow">STOCK ANALYSIS / {s.ticker}</p>
-          <h1>
+          <div className="stock-title-row"><h1>
             {s.ticker}
             <span>.</span>
-          </h1>
+          </h1><LiveStockPrice ticker={s.ticker} /></div>
           <p className="muted">
             {date(s.date)} · {s.time} · Asia/Bangkok
             {s.sessionDate && ` · วันตลาดสหรัฐ ${s.sessionDate}`}
@@ -113,7 +114,7 @@ export default async function StockDetail({
           </div>
           <Metrics
             items={[
-              ["Current price", price(s.price)],
+              ["Analysis price", price(s.price)],
               ["Previous close", price(s.previousClose)],
               ["Change %", percent(s.changePercent)],
             ]}

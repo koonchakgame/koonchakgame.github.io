@@ -13,8 +13,11 @@ export default function LiveDashboard() {
   useEffect(() => {
     let busy = false;
     const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout>;
     async function update() {
-      if (busy || document.hidden) return;
+      if (busy) return;
+      clearTimeout(timer);
+      if (document.hidden) return;
       busy = true;
       try {
         const response = await fetch("/api/live", {
@@ -23,7 +26,9 @@ export default function LiveDashboard() {
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload: LiveDashboardData = await response.json();
+        if (controller.signal.aborted) return;
         setData(payload);
+        router.refresh();
         setError("");
       } catch (err) {
         if (!controller.signal.aborted)
@@ -32,23 +37,18 @@ export default function LiveDashboard() {
           );
       } finally {
         busy = false;
+        if (!controller.signal.aborted)
+          timer = setTimeout(() => void update(), 60_000);
       }
     }
     void update();
-    const timer = setInterval(() => {
-      void update();
-      if (!document.hidden) router.refresh();
-    }, 60_000);
     const onVisible = () => {
-      if (!document.hidden) {
-        void update();
-        router.refresh();
-      }
+      if (!document.hidden) void update();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       controller.abort();
-      clearInterval(timer);
+      clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [router]);
@@ -72,12 +72,17 @@ export default function LiveDashboard() {
   return (
     <>
       <section className="section">
+        {data && (
+          <p className="feed-caption" role="status">
+            รีเฟรชข้อมูลล่าสุด {timestamp(data.refreshedAt)} · Asia/Bangkok
+          </p>
+        )}
         <div className="section-heading">
           <h2>
             Market overview <span className="count">YAHOO</span>
           </h2>
           <span className="muted text-xs">
-            อัปเดตทุก 60 วินาที · ราคาล่าสุดอาจล่าช้า
+            รีเฟรชพร้อมกันทุก 60 วินาที · ราคาล่าสุดอาจล่าช้า
           </span>
         </div>
         {error && (
@@ -258,7 +263,7 @@ export default function LiveDashboard() {
             </p>
           )}
           <p className="feed-caption">
-            Forex Factory weekly export · cache 15 นาที · เวลา Asia/Bangkok ·
+            Forex Factory weekly export · รีเฟรชทุก 60 วินาที · เวลา Asia/Bangkok ·
             Actual แสดงเฉพาะเมื่อ feed มีค่า
             {calendar?.fetchedAt &&
               ` · ดึงล่าสุด ${timestamp(calendar.fetchedAt)}`}
@@ -306,7 +311,7 @@ export default function LiveDashboard() {
             </p>
           )}
           <p className="feed-caption">
-            แสดงพาดหัวและลิงก์จาก Yahoo RSS · cache 5 นาที ·
+            แสดงพาดหัวและลิงก์จาก Yahoo RSS · รีเฟรชทุก 60 วินาที ·
             ไม่แสดงข่าววันเก่าเป็นข่าววันนี้
             {data?.news.fetchedAt &&
               ` · ดึงล่าสุด ${timestamp(data.news.fetchedAt)}`}

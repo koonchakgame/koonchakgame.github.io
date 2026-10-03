@@ -427,6 +427,34 @@ dt {
 .stock-card:hover {
   border-color: #6a9489;
 }
+.stock-card-heading, .stock-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.stock-title-row {
+  align-items: center;
+  justify-content: flex-start;
+  gap: 24px;
+}
+.live-stock-price {
+  min-width: 0;
+  max-width: 100%;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.live-stock-price small {
+  display: block;
+  font-size: 9px;
+}
+.live-stock-price strong {
+  font-size: 18px;
+}
+.live-stock-price span {
+  font-size: 11px;
+}
 .ticker-icon {
   width: 39px;
   height: 39px;
