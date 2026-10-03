@@ -102,7 +102,9 @@ test("dashboard reads the Excel snapshots and opens a complete stock detail", as
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "News summary" }),
-  ).toBeVisible();
+  ).not.toBeVisible();
+  await page.locator("summary").filter({ hasText: "News summary" }).click();
+  await expect(page.getByRole("heading", { name: "News summary" })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Analysis summary" }),
   ).toBeVisible();
@@ -116,6 +118,7 @@ test("dashboard reads the Excel snapshots and opens a complete stock detail", as
     .click();
   await expect(page.locator(".detail-price")).toContainText("$109.11");
   await expect(page.locator(".page-heading .badge").first()).toHaveText("WAIT");
+  await page.locator("summary").filter({ hasText: "Macro overview" }).click();
   await expect(
     page.locator(".market-tile").filter({ hasText: "US 10Y" }),
   ).toContainText("4.12%");
@@ -133,7 +136,7 @@ test("today calendar uses Bangkok dates, supports week and filters, and excludes
   ).toHaveCount(0);
   await expect(
     page.getByText("Today market headline", { exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     page.getByText("Old market headline", { exact: true }),
   ).toHaveCount(0);
@@ -172,7 +175,7 @@ test("automatic refresh updates bonds, calendar and news in one snapshot", async
   release();
   await expect(bond.locator("dd")).toHaveText("4.50%");
   await expect(page.getByText("Updated release", { exact: true })).toBeVisible();
-  await expect(page.getByText("Updated headline", { exact: true })).toBeVisible();
+  await expect(page.getByText("Updated headline", { exact: true })).toHaveCount(0);
 });
 test("latest stock prices appear beside names and in historical articles, refresh and retain failed quotes", async ({ page }) => {
   await page.clock.install();
@@ -193,6 +196,25 @@ test("latest stock prices appear beside names and in historical articles, refres
   await expect(page.locator(".live-stock-price")).toContainText("ข้อมูลเดิม");
   await expect(page.locator(".live-stock-price strong")).toHaveText("$155.00");
 });
+test("watchlist search and support dashboard use current quotes", async ({ page }) => {
+  await page.route("**/api/stock-quotes", (route) => route.fulfill({ json: { quotes: [{ key: "SNDK", label: "SNDK", symbol: "SNDK", unit: "$", description: "Yahoo", value: 114, changePercent: 1, asOf: "2026-10-02T18:01:00Z", stale: false }] } }));
+  await page.goto("/");
+  await expect(page.locator(".support-card")).toHaveCount(1);
+  await expect(page.locator(".support-card")).toContainText("SNDK");
+  await expect(page.locator(".support-card")).toContainText("3.80%");
+  const search = page.getByRole("searchbox", { name: "ค้นหาหุ้น" });
+  await search.fill("nvda");
+  await expect(page.locator(".stock-card")).toHaveCount(1);
+  await expect(page.locator(".stock-card h2")).toHaveText("NVDA");
+  await search.fill("unknown");
+  await expect(page.locator(".stock-card")).toHaveCount(0);
+  await search.fill("");
+  await expect(page.locator(".stock-card")).toHaveCount(4);
+  await expect(page.locator(".headline-panel")).toHaveCount(0);
+  await page.locator(".support-card").click();
+  await expect(page.getByRole("heading", { name: "Data status & sources" })).toHaveCount(0);
+  await expect(page.locator(".analysis-fold").filter({ hasText: "News summary" })).not.toHaveAttribute("open");
+});
 test("missing symbols and missing snapshots return 404", async ({ page }) => {
   expect((await page.goto("/stocks/UNKNOWN"))?.status()).toBe(404);
   await expect(
@@ -203,7 +225,7 @@ test("missing symbols and missing snapshots return 404", async ({ page }) => {
   ).toBe(404);
 });
 for (const width of [390, 768, 1440]) {
-  test(`dashboard and detail fit viewport ${width}`, async ({ page }) => {
+  test(`dashboard and detail fit viewport ${width}`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 900 });
     for (const route of ["/", "/stocks/NVDA"]) {
       await page.goto(route);
@@ -212,6 +234,7 @@ for (const width of [390, 768, 1440]) {
           () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
       ).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(route === "/" ? "dashboard.png" : "analysis.png"), fullPage: true });
     }
   });
 }

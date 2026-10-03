@@ -416,6 +416,45 @@ dt {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
+.support-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+}
+.support-card {
+  border: 1px solid #2d5649;
+  border-radius: 10px;
+  padding: 16px;
+  background: #152620;
+}
+.support-card p { margin: 12px 0 6px; font-size: 12px; }
+.watchlist-toolbar { flex-wrap: wrap; gap: 16px; }
+.watchlist-search { display: flex; align-items: center; gap: 10px; font-size: 12px; max-width: 100%; }
+.watchlist-search input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #111a29;
+  color: inherit;
+  min-width: 0;
+  width: 210px;
+  max-width: 100%;
+}
+.watchlist-search input:focus { outline: 2px solid #6a9489; }
+.analysis-fold { border: 1px solid var(--line); border-radius: 10px; background: #111a29; }
+.analysis-fold > summary { cursor: pointer; padding: 16px 20px; font-weight: 600; }
+.analysis-fold > .section { margin: 0; padding: 0 16px 16px; }
+.analysis-fold > .panel { border: 0; }
+.compact-analysis { margin-top: 16px; align-items: start; }
+.compact-analysis .panel { padding: 16px; }
+.compact-analysis .panel-heading { margin-bottom: 12px; }
+.compact-analysis .metrics > div { padding: 7px 0; }
+@media (min-width: 1100px) {
+  .compact-analysis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .compact-analysis > .panel:last-child { grid-column: span 3; }
+  .compact-analysis .plan-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .compact-analysis > .panel:last-child > .metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 24px; }
+}
 .stock-card {
   display: block;
   border: 1px solid var(--line);
@@ -445,6 +484,11 @@ dt {
   text-align: right;
   overflow-wrap: anywhere;
 }
+.stock-card-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 150px);
+}
+.stock-card-heading .ticker-icon { flex-shrink: 0; }
 .live-stock-price small {
   display: block;
   font-size: 9px;

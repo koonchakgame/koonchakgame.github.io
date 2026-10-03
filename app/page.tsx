@@ -1,7 +1,7 @@
 import { getDashboardData } from "@/lib/data-service";
-import { DRIVE_FOLDER_URL } from "@/lib/drive";
 import { date, timestamp } from "@/lib/format";
 import StockCard from "@/components/StockCard";
+import Watchlist from "@/components/Watchlist";
 import LiveDashboard from "@/components/LiveDashboard";
 export const dynamic = "force-dynamic";
 export default async function Home() {
@@ -37,21 +37,7 @@ export default async function Home() {
         แสดงเฉพาะหุ้นที่มีในแหล่งข้อมูล · ค่าที่ขาดแสดง — · สถานะและแผนอ่านจาก
         Excel โดยตรง
       </div>
-      <LiveDashboard />
       <section className="section">
-        <div className="section-heading">
-          <h2>
-            Stock watchlist <span className="count">{stocks.length}</span>
-          </h2>
-          <a
-            className="positive text-xs"
-            href={DRIVE_FOLDER_URL}
-            target="_blank"
-            rel="noreferrer"
-          >
-            เปิดโฟลเดอร์ Drive ↗
-          </a>
-        </div>
         {result.error && (
           <p className="feed-warning" role="alert">
             {result.error}
@@ -69,20 +55,9 @@ export default async function Home() {
             {dataset.stale && " · ข้อมูลเดิม"} · ตรวจ Drive ทุก 60 วินาที
           </p>
         )}
-        {stocks.length ? (
-          <div className="stock-grid">
-            {stocks.map((stock) => (
-              <StockCard key={stock.ticker} stock={stock} />
-            ))}
-          </div>
-        ) : (
-          <div className="panel muted">
-            {result.error
-              ? "ยังโหลดบทวิเคราะห์ไม่ได้ เว็บไซต์จะลองใหม่ในรอบถัดไป"
-              : "ไม่มีบทวิเคราะห์ในไฟล์ที่อ่านได้ เพิ่มไฟล์ Excel ลงโฟลเดอร์ Drive แล้วรีเฟรชหน้า"}
-          </div>
-        )}
       </section>
+      <Watchlist stocks={stocks} cards={stocks.map((stock) => <StockCard key={stock.ticker} stock={stock} />)} />
+      <LiveDashboard />
       <div className="workflow">
         <span>
           01 <b>ChatGPT วิเคราะห์</b>

@@ -6,6 +6,7 @@ import { percent, price, timestamp, tone } from "@/lib/format";
 import type { MarketQuote } from "@/types/live";
 
 const QuotesContext = createContext<{ quotes: MarketQuote[]; error: boolean }>({ quotes: [], error: false });
+export function useStockQuotes() { return useContext(QuotesContext); }
 
 export function StockQuotesProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState({ quotes: [] as MarketQuote[], error: false });

@@ -3,7 +3,7 @@ import LiveStockPrice from "@/components/LiveStockPrice";
 import { notFound } from "next/navigation";
 import { getStockHistory } from "@/lib/data-service";
 import { date, price, percent, number, tone, priceRange } from "@/lib/format";
-import { StockNews, MetricProvenance } from "@/components/SourceDetails";
+import { StockNews } from "@/components/SourceDetails";
 import { Panel, Metrics, Status } from "@/components/Panels";
 import TechnicalPanel from "@/components/TechnicalPanel";
 import SupportResistance from "@/components/SupportResistance";
@@ -104,7 +104,8 @@ export default async function StockDetail({
           ))}
         </nav>
       </section>
-      <div className="detail-grid">
+      <NewsPanel title="Analysis summary" text={s.analysisSummary} />
+      <div className="detail-grid compact-analysis">
         <Panel title="Price snapshot">
           <div className="detail-price">
             {price(s.price)}
@@ -123,9 +124,8 @@ export default async function StockDetail({
         <TechnicalPanel stock={s} />
         <SupportResistance stock={s} />
         <TradingPlan stock={s} />
-        <StockNews stock={s} />
-        <NewsPanel title="Analysis summary" text={s.analysisSummary} />
       </div>
+      <details className="analysis-fold section"><summary>Macro overview</summary>
       <div className="section">
         <MacroPanel stock={s} />
         <p className="feed-caption">
@@ -133,15 +133,8 @@ export default async function StockDetail({
           ดู Data status & sources ด้านล่าง
         </p>
       </div>
-      <div className="section">
-        <Panel title="Final status">
-          <Status bias={s.tradingBias} risk={s.riskLevel} />
-          <p className="feed-caption">
-            สถานะจากไฟล์: {s.tradingBias} · Risk Level ไม่ถูกอนุมานจาก
-            Confidence
-          </p>
-        </Panel>
-      </div>
+      </details>
+      <details className="analysis-fold section"><summary>Historical comparison</summary>
       <section className="section">
         <Panel
           title="Historical comparison"
@@ -201,7 +194,8 @@ export default async function StockDetail({
           </div>
         </Panel>
       </section>
-      <MetricProvenance stock={s} />
+      </details>
+      <details className="analysis-fold section"><summary>News summary</summary><StockNews stock={s} /></details>
     </>
   );
 }

@@ -60,9 +60,6 @@ export default function LiveDashboard() {
       (currency === "ALL" || currency === event.currency) &&
       (impact === "ALL" || impact === event.impact),
   );
-  const headlines = (data?.news.data ?? []).filter(
-    (item) => dayKey(new Date(item.publishedAt)) === today,
-  );
   const coveredDays = (calendar?.data ?? [])
     .map((e) => dayKey(new Date(e.date)))
     .sort();
@@ -152,7 +149,7 @@ export default function LiveDashboard() {
       <section className="section news-window">
         <div className="section-heading">
           <h2>
-            ข่าว & ปฏิทินเศรษฐกิจ <span className="count">{date(today)}</span>
+            ปฏิทินเศรษฐกิจ <span className="count">{date(today)}</span>
           </h2>
           <a
             className="positive text-xs"
@@ -267,54 +264,6 @@ export default function LiveDashboard() {
             Actual แสดงเฉพาะเมื่อ feed มีค่า
             {calendar?.fetchedAt &&
               ` · ดึงล่าสุด ${timestamp(calendar.fetchedAt)}`}
-          </p>
-        </div>
-        <div className="panel headline-panel">
-          <div className="panel-heading">
-            <h2>Market headlines · วันนี้</h2>
-            <a
-              className="positive text-xs"
-              href="https://finance.yahoo.com/news/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Yahoo Finance ↗
-            </a>
-          </div>
-          {data?.news.error && (
-            <p className="feed-warning">
-              {data.news.error}
-              {data.news.stale && " · ข้อมูลเดิม"}
-            </p>
-          )}
-          {headlines.length ? (
-            <div className="headline-list">
-              {headlines.map((item) => (
-                <a
-                  key={item.url}
-                  href={item.url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <span>{item.title}</span>
-                  <small>{timestamp(item.publishedAt)} · Yahoo Finance ↗</small>
-                </a>
-              ))}
-            </div>
-          ) : (
-            <p className="empty-feed">
-              {!data
-                ? "กำลังโหลดข่าว…"
-                : data.news.error && !data.news.data.length
-                  ? "ดึงข่าวไม่ได้ในขณะนี้"
-                  : "ไม่มีข่าวที่ลงวันที่วันนี้ใน Yahoo RSS ที่ได้รับ"}
-            </p>
-          )}
-          <p className="feed-caption">
-            แสดงพาดหัวและลิงก์จาก Yahoo RSS · รีเฟรชทุก 60 วินาที ·
-            ไม่แสดงข่าววันเก่าเป็นข่าววันนี้
-            {data?.news.fetchedAt &&
-              ` · ดึงล่าสุด ${timestamp(data.news.fetchedAt)}`}
           </p>
         </div>
       </section>
