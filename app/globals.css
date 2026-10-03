@@ -449,6 +449,42 @@ dt {
 .compact-analysis .panel { padding: 16px; }
 .compact-analysis .panel-heading { margin-bottom: 12px; }
 .compact-analysis .metrics > div { padding: 7px 0; }
+.trade-plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px; }
+.trade-plan-card { border: 1px solid var(--line); border-radius: 9px; padding: 14px; min-width: 0; background: #0e1623; }
+.trade-plan-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.trade-plan-heading h3 { font-size: 14px; font-weight: 600; }
+.trade-plan-heading span { font-size: 11px; }
+.plan-key-prices, .plan-entries, .plan-targets { display: grid; gap: 10px; }
+.plan-key-prices { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); margin-bottom: 12px; }
+.plan-entries, .plan-targets { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.plan-entries { margin-bottom: 12px; }
+.plan-entries > div, .plan-targets > div { padding: 9px 12px; border-radius: 7px; background: #192536; min-width: 0; }
+.plan-entries dt, .plan-key-prices dt, .plan-targets dt, .plan-stop span { color: #8ba0b9; font-size: 11px; margin-bottom: 4px; }
+.plan-entries dd, .plan-key-prices dd { font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.plan-targets dd { font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.plan-exit-row { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(0, 3fr); gap: 12px; }
+.plan-stop { display: flex; flex-direction: column; justify-content: center; padding: 9px 12px; background: #291c28; border-radius: 7px; }
+.plan-status { font-size: 11px; margin-top: 10px; overflow-wrap: anywhere; }
+.trade-details { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 8px; }
+.trade-details summary { cursor: pointer; font-size: 11px; color: #b9c9dd; padding: 4px 0; }
+.trade-details p { font-size: 12px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 8px; }
+.price-level-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.price-level-group { min-width: 0; border-radius: 8px; background: #152620; padding: 12px; }
+.price-level-group.resistance { background: #271d28; }
+.price-level-group h3 { font-size: 12px; font-weight: 600; color: #6de3b7; margin-bottom: 8px; }
+.price-level-group.resistance h3 { color: #f58b9a; }
+.price-level-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; padding: 8px 0; border-bottom: 1px solid #ffffff0c; }
+.price-level-row:last-child { border-bottom: 0; }
+.price-level-row dt { color: #8ba0b9; font-size: 10px; flex-shrink: 0; }
+.price-level-row dd { text-align: right; font-size: 12px; overflow-wrap: anywhere; }
+.price-level-row small { display: block; font-size: 9px; }
+@media (max-width: 480px) {
+  .plan-exit-row { grid-template-columns: 1fr; }
+  .plan-stop { flex-direction: row; align-items: center; justify-content: space-between; }
+  .plan-stop span { margin: 0; }
+  .price-level-columns { gap: 8px; }
+  .price-level-group { padding: 10px; }
+}
 @media (min-width: 1100px) {
   .compact-analysis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .compact-analysis > .panel:last-child { grid-column: span 3; }
