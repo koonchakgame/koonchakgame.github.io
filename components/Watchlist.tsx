@@ -28,6 +28,17 @@ export default function Watchlist({ stocks, cards }: { stocks: StockAnalysis[]; 
         <p>ราคาล่าสุด <strong>{price(quote.value)}</strong></p><small className="muted">แนวรับ {priceRange(support.low, support.high)}</small>
         <p className={stale ? "negative" : support.distance <= 5 ? "positive" : "muted"}>{stale ? "ข้อมูลเดิม · รออัปเดตราคา" : support.distance > 5 ? "ยังห่างแนวรับ" : support.distance < 3 ? "ใกล้มาก" : "ใกล้แนวรับ"}</p>
       </Link>)}</div>
+      {!!unavailable.length && <div className="support-grid mt-3">{unavailable.map((stock) => {
+        const quote = quotes.find((item) => item.symbol === stock.ticker);
+        const status = quote?.value != null
+          ? "ราคาต่ำกว่าแนวรับ หรือไม่มีแนวรับที่ใช้คำนวณได้"
+          : error || quote?.error ? "ดึงราคาจาก Yahoo ไม่สำเร็จ" : quote ? "Yahoo ไม่มีราคาสำหรับหุ้นนี้" : "รอราคาจาก Yahoo";
+        return <Link className="support-card support-pending" href={`/stocks/${encodeURIComponent(stock.ticker)}`} key={stock.ticker} data-testid="support-pending">
+          <div className="flex justify-between gap-3"><strong>{stock.ticker}</strong><span className="badge neutral">ยังคำนวณไม่ได้</span></div>
+          <p>ราคาล่าสุด <strong>{price(quote?.value)}</strong></p>
+          <small className="muted">{status}</small>
+        </Link>;
+      })}</div>}
       {!tracked.length && <p className="empty-feed">{!stocks.length ? "ยังไม่มีบทวิเคราะห์ให้ติดตาม" : error ? "ดึงราคาล่าสุดไม่สำเร็จ รออัปเดตรอบถัดไป" : !quotes.length ? "กำลังตรวจราคาหุ้น…" : "ยังไม่มีราคาและแนวรับที่พร้อมคำนวณ"}</p>}
       {!!unavailable.length && !!quotes.length && <p className="feed-caption">ยังคำนวณไม่ได้: {unavailable.map((stock) => stock.ticker).join(", ")} · ราคาไม่พร้อมใช้งาน ไม่มีแนวรับ หรือราคาต่ำกว่าแนวรับที่บันทึกไว้</p>}
     </section>

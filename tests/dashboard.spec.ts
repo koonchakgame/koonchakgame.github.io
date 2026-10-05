@@ -199,9 +199,9 @@ test("latest stock prices appear beside names and in historical articles, refres
 test("watchlist search and support dashboard use current quotes", async ({ page }) => {
   await page.route("**/api/stock-quotes", (route) => route.fulfill({ json: { quotes: [{ key: "SNDK", label: "SNDK", symbol: "SNDK", unit: "$", description: "Yahoo", value: 114, changePercent: 1, asOf: "2026-10-02T18:01:00Z", stale: false }] } }));
   await page.goto("/");
-  await expect(page.locator(".support-card")).toHaveCount(1);
-  await expect(page.locator(".support-card")).toContainText("SNDK");
-  await expect(page.locator(".support-card")).toContainText("3.80%");
+  await expect(page.locator(".support-card:not(.support-pending)")).toHaveCount(1);
+  await expect(page.locator(".support-card:not(.support-pending)")).toContainText("SNDK");
+  await expect(page.locator(".support-card:not(.support-pending)")).toContainText("3.80%");
   const search = page.getByRole("searchbox", { name: "ค้นหาหุ้น" });
   await search.fill("nvda");
   await expect(page.locator(".stock-card")).toHaveCount(1);
@@ -211,7 +211,7 @@ test("watchlist search and support dashboard use current quotes", async ({ page 
   await search.fill("");
   await expect(page.locator(".stock-card")).toHaveCount(4);
   await expect(page.locator(".headline-panel")).toHaveCount(0);
-  await page.locator(".support-card").click();
+  await page.locator(".support-card:not(.support-pending)").click();
   await expect(page.getByRole("heading", { name: "Data status & sources" })).toHaveCount(0);
   await expect(page.locator(".analysis-fold").filter({ hasText: "News summary" })).not.toHaveAttribute("open");
 });
@@ -220,14 +220,21 @@ test("support dashboard keeps distant stocks and last quotes after refresh failu
   await page.route("**/api/stock-quotes", (route) => route.fulfill({ json: { quotes: [{ key: "SNDK", label: "SNDK", symbol: "SNDK", unit: "$", description: "Yahoo", value: 150, changePercent: 1, asOf: "2026-10-02T18:01:00Z", stale: false }] } }));
   await page.goto("/");
   const dashboard = page.locator(".support-dashboard");
-  await expect(dashboard.locator(".support-card")).toHaveCount(1);
+  await expect(dashboard.locator(".support-card:not(.support-pending)")).toHaveCount(1);
   await expect(dashboard).toContainText("ยังห่างแนวรับ");
   await expect(dashboard.locator(".count")).toHaveText("0");
   await page.route("**/api/stock-quotes", (route) => route.fulfill({ status: 503, json: { error: "Unavailable" } }));
   await page.clock.runFor(60_000);
   await expect(dashboard).toContainText("ข้อมูลเดิม · รออัปเดตราคา");
-  await expect(dashboard.locator(".support-card")).toHaveCount(1);
-  await expect(dashboard.locator(".support-card")).toContainText("$150.00");
+  await expect(dashboard.locator(".support-card:not(.support-pending)")).toHaveCount(1);
+  await expect(dashboard.locator(".support-card:not(.support-pending)")).toContainText("$150.00");
+});
+test("support dashboard shows each analyzed stock even if Yahoo fails initially", async ({ page }) => {
+  await page.route("**/api/stock-quotes", (route) => route.fulfill({ status: 503, json: { error: "Unavailable" } }));
+  await page.goto("/");
+  await expect(page.locator(".support-dashboard")).toBeVisible();
+  await expect(page.getByTestId("support-pending")).toHaveCount(4);
+  await expect(page.getByTestId("support-pending").filter({ hasText: "SNDK" })).toContainText("ดึงราคาจาก Yahoo ไม่สำเร็จ");
 });
 test("missing symbols and missing snapshots return 404", async ({ page }) => {
   expect((await page.goto("/stocks/UNKNOWN"))?.status()).toBe(404);
