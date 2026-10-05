@@ -215,6 +215,20 @@ test("watchlist search and support dashboard use current quotes", async ({ page 
   await expect(page.getByRole("heading", { name: "Data status & sources" })).toHaveCount(0);
   await expect(page.locator(".analysis-fold").filter({ hasText: "News summary" })).not.toHaveAttribute("open");
 });
+test("support dashboard keeps distant stocks and last quotes after refresh failure", async ({ page }) => {
+  await page.clock.install();
+  await page.route("**/api/stock-quotes", (route) => route.fulfill({ json: { quotes: [{ key: "SNDK", label: "SNDK", symbol: "SNDK", unit: "$", description: "Yahoo", value: 150, changePercent: 1, asOf: "2026-10-02T18:01:00Z", stale: false }] } }));
+  await page.goto("/");
+  const dashboard = page.locator(".support-dashboard");
+  await expect(dashboard.locator(".support-card")).toHaveCount(1);
+  await expect(dashboard).toContainText("ยังห่างแนวรับ");
+  await expect(dashboard.locator(".count")).toHaveText("0");
+  await page.route("**/api/stock-quotes", (route) => route.fulfill({ status: 503, json: { error: "Unavailable" } }));
+  await page.clock.runFor(60_000);
+  await expect(dashboard).toContainText("ข้อมูลเดิม · รออัปเดตราคา");
+  await expect(dashboard.locator(".support-card")).toHaveCount(1);
+  await expect(dashboard.locator(".support-card")).toContainText("$150.00");
+});
 test("missing symbols and missing snapshots return 404", async ({ page }) => {
   expect((await page.goto("/stocks/UNKNOWN"))?.status()).toBe(404);
   await expect(
